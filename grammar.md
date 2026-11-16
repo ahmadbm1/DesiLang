@@ -1,4 +1,4 @@
-# SmartLang Grammar (EBNF)
+# DESILANG Specification
 
 ## 1. Program Structure
 
@@ -7,17 +7,21 @@ Program          = { Declaration } ;
 Declaration      = VariableDecl
                  | FunctionDecl ;
 
-## 2. Variable Declarations
+## 2. Data Types and Declarations
 
-VariableDecl     = [ "const" ] Type Identifier
+Type             = "adad"
+                 | "ashariya"
+                 | "harf"
+                 | "mantiqi" ;
+
+VariableDecl     = [ "pakka" ] Type Identifier
                    [ "=" Expression ] ";" ;
 
-Type             = "int"
-                 | "float"
-                 | "char"
-                 | "bool" ;
+## 3. Functions
 
-## 3. Function Declarations
+FunctionCall     = Identifier "(" [ Arguments ] ")" ;
+
+Arguments        = Expression { "," Expression } ;
 
 FunctionDecl     = Type Identifier "(" [ Parameters ] ")"
                    Block ;
@@ -32,70 +36,75 @@ Block            = "{" { Statement } "}" ;
 
 Statement        = VariableDecl
                  | Assignment
+                 | FunctionCall ";"
                  | IfStatement
                  | WhileStatement
                  | ForStatement
                  | ReturnStatement
                  | Block ;
 
-Assignment       = Identifier "=" Expression ";" ;
+Assignment       = Identifier "=" Expression ";"
+                 | Identifier "++" ";"
+                 | Identifier "--" ";" ;
 
 ## 5. Conditional Statements
 
-IfStatement      = "if" "(" Expression ")" Block
-                   [ "else" ( IfStatement | Block ) ] ;
+IfStatement      = "agar" "(" Expression ")" Block
+                   [ "warna" ( IfStatement | Block ) ] ;
 
 ## 6. Loops
 
-WhileStatement   = "while" "(" Expression ")" Block ;
+WhileStatement   = "jabtak" "(" Expression ")" Block ;
 
-ForStatement     = "for" "(" [ ForInit ] ";"
+ForStatement     = "ke_liye" "(" [ ForInit ] ";"
                    [ Expression ] ";"
                    [ ForUpdate ] ")" Block ;
 
 ForInit          = VariableDeclNoSemi
                  | AssignmentNoSemi ;
 
-ForUpdate        = AssignmentNoSemi ;
-
-VariableDeclNoSemi = [ "const" ] Type Identifier
+VariableDeclNoSemi = [ "pakka" ] Type Identifier
                      [ "=" Expression ] ;
 
-AssignmentNoSemi = Identifier "=" Expression ;
+AssignmentNoSemi = Identifier "=" Expression
+                 | Identifier "++"
+                 | Identifier "--" ;
+
+ForUpdate        = AssignmentNoSemi ;
 
 ## 7. Return Statement
 
-ReturnStatement  = "return" [ Expression ] ";" ;
+ReturnStatement  = "wapas" [ Expression ] ";" ;
 
-## 8. Expressions
+## 8. Expressions and Operator Precedence
 
-Expression       = LogicalExpression ;
+Expression       = LogicalOr ;
 
-LogicalExpression = ComparisonExpression
-                    { LogicalOperator ComparisonExpression } ;
+LogicalOr        = LogicalAnd { "||" LogicalAnd } ;
 
-ComparisonExpression = ArithmeticExpression
-                       [ RelationalOperator ArithmeticExpression ] ;
+LogicalAnd       = Equality { "&&" Equality } ;
 
-ArithmeticExpression = Term { ("+" | "-") Term } ;
+Equality         = Comparison { ("==" | "!=") Comparison } ;
 
-Term             = Factor { ("*" | "/" | "%") Factor } ;
+Comparison       = Arithmetic { ("<" | ">" | "<=" | ">=")
+                                Arithmetic } ;
 
-Factor           = Number
+Arithmetic       = Term { ("+" | "-") Term } ;
+
+Term             = Unary { ("*" | "/" | "%") Unary } ;
+
+Unary            = ("!" | "-" | "+") Unary
+                 | Primary ;
+
+Primary          = Number
                  | Character
-                 | Boolean
+                 | "sach"
+                 | "jhoot"
+                 | FunctionCall
                  | Identifier
-                 | "(" Expression ")"
-                 | UnaryOperator Factor ;
+                 | "(" Expression ")" ;
 
-LogicalOperator  = "&&" | "||" ;
-
-RelationalOperator = "==" | "!=" | "<" | ">"
-                   | "<=" | ">=" ;
-
-UnaryOperator    = "!" | "-" | "+" ;
-
-## 9. Identifiers and Literals
+## 9. Lexical Elements
 
 Identifier       = Letter { Letter | Digit | "_" } ;
 
@@ -107,10 +116,28 @@ Float            = Digit { Digit } "." Digit { Digit } ;
 
 Character        = "'" CharacterValue "'" ;
 
-Boolean          = "true" | "false" ;
-
-## 10. Lexical Elements
-
 Letter           = "a"..."z" | "A"..."Z" ;
 
 Digit            = "0"..."9" ;
+
+## 10. Operators
+
+Arithmetic       = "+" | "-" | "*" | "/" | "%" ;
+
+Relational       = "==" | "!=" | "<" | ">"
+                 | "<=" | ">=" ;
+
+Logical          = "&&" | "||" | "!" ;
+
+Increment        = "++" | "--" ;
+
+AssignmentOp     = "=" ;
+
+## 11. Delimiters
+
+Delimiters       = "(" | ")" | "{" | "}"
+                 | "," | ";" ;
+
+## 12. Comments
+
+SingleLineComment = "//" { AnyCharacter } ;
