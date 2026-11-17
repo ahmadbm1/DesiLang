@@ -21,20 +21,17 @@ enum class TokenType {
     KwSach,         // sach (true)
     KwJhoot,        // jhoot (false)
 
-    // Identifiers and literals
     Identifier,
     IntegerLiteral,
     FloatLiteral,
     CharacterLiteral,
 
-    // Arithmetic operators
     Plus,
     Minus,
     Star,
     Slash,
     Percent,
 
-    // Assignment and comparison operators
     Assign,
     Equal,
     NotEqual,
@@ -43,29 +40,28 @@ enum class TokenType {
     LessEqual,
     GreaterEqual,
 
-    // Logical operators
     AndAnd,
+    BitAnd,
+    BitOr,
     OrOr,
     Bang,
 
-    // Increment and decrement
     PlusPlus,
     MinusMinus,
 
-    // Delimiters
     LeftParen,
     RightParen,
     LeftBrace,
     RightBrace,
+    LeftBrack,
+    RightBrack,
     Comma,
     Semicolon,
 
-    // Special tokens
     EndOfFile,
     Invalid
 };
 
-// Represents one token
 struct Token {
     TokenType type;
     std::string lexeme;

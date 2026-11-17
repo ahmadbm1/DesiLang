@@ -1,373 +1,199 @@
-
 #include "lexer.h"
 
 #include <cctype>
 #include <unordered_map>
 #include <utility>
 
-namespace {
 
-const std::unordered_map<std::string, TokenType> keywords = {
-    {"adad", TokenType::KwAdad},
-    {"ashariya", TokenType::KwAshariya},
-    {"harf", TokenType::KwHarf},
-    {"mantiqi", TokenType::KwMantiqi},
-    {"mustaqil", TokenType::KwMustaqil},
-
-    {"agar", TokenType::KwAgar},
-    {"warna", TokenType::KwWarna},
-    {"jabtak", TokenType::KwJabtak},
-    {"ke_liye", TokenType::KwKeLiye},
-    {"wapas", TokenType::KwWapas},
-
-    {"sach", TokenType::KwSach},
-    {"jhoot", TokenType::KwJhoot}
-};
-
-bool isIdentifierStart(char c) {
-    return std::isalpha(static_cast<unsigned char>(c))
-           || c == '_';
+bool Lexer::isAtEnd(size_t offset=0) const
+{
+    return position+offset >=source.size();
 }
 
-bool isIdentifierPart(char c) {
-    return std::isalnum(static_cast<unsigned char>(c))
-           || c == '_';
-}
-
-} // namespace
-
-Lexer::Lexer(const std::string& sourceCode)
-    : source(sourceCode) {
-}
-
-bool Lexer::isAtEnd() const {
-    return position >= source.size();
-}
-
-char Lexer::currentChar() {
-    if (isAtEnd()) {
+char Lexer::currentChar()
+{
+    if(isAtEnd())
         return '\0';
-    }
 
     return source[position];
 }
 
-char Lexer::peek(size_t offset) const {
-    if (position + offset >= source.size()) {
+char Lexer::peek(size_t offset=1) const
+{
+    if (isAtEnd(offset))
         return '\0';
-    }
-
-    return source[position + offset];
+    return source[position+offset];
 }
 
-char Lexer::advance() {
-    if (isAtEnd()) {
+char Lexer::next()
+{
+    if(isAtEnd())
         return '\0';
-    }
-
-    char c = source[position++];
-
-    if (c == '\n') {
+    char c=source[position++];
+    if(c=='\n')
+    {
         line++;
-        column = 1;
-    } else {
-        column++;
+        character=1;
     }
-
+    else
+        character++;
     return c;
 }
 
-Token Lexer::makeToken(
-    TokenType type,
-    const std::string& lexeme,
-    int startLine,
-    int startColumn
-) {
-    return {type, lexeme, startLine, startColumn};
-}
 
-// Skip spaces, tabs, newlines and comments.
-void Lexer::skipWhitespaceAndComments() {
-
-    while (!isAtEnd()) {
-
-        char c = currentChar();
-
-        if (std::isspace(static_cast<unsigned char>(c))) {
-            advance();
+void Lexer::skipWhitespaceAndComments()
+{
+    while (!isAtEnd())
+    {
+        if(currentChar() ==' ')
+        {
+            next();
             continue;
         }
-
-        // Single-line comment
-        if (c == '/' && peek() == '/') {
-
-            while (!isAtEnd() && currentChar() != '\n') {
-                advance();
-            }
-
+        if (currentChar()=='/' && peek() == '/')
+        {
+            while (!isAtEnd() && currentChar() != '\n')
+                next();
             continue;
         }
-
         break;
     }
 }
 
-// Recognize keywords and identifiers.
-Token Lexer::scanIdentifier() {
 
-    int startLine = line;
-    int startColumn = column;
-
+Token Lexer::scanKeywordIdentifier()
+{
+    size_t startLine = line;
+    size_t startChar = character;
     std::string lexeme;
 
-    while (!isAtEnd() && isIdentifierPart(currentChar())) {
-        lexeme += advance();
-    }
+    while (!isAtEnd && (std::isalnum(static_cast<unsigned char>(currentChar())) || currentChar() == '_'))
+        lexeme+=next();
 
-    auto it = keywords.find(lexeme);
+    auto type= keywords.find(lexeme);
 
-    if (it != keywords.end()) {
-        return makeToken(
-            it->second, lexeme, startLine, startColumn
-        );
-    }
-
-    return makeToken(
-        TokenType::Identifier, lexeme, startLine, startColumn
-    );
+    if (type != keywords.end())
+        return {type->second,lexeme,static_cast<int>(startLine),static_cast<int>(startChar)};
+    return {TokenType::Identifier,lexeme,static_cast<int>(startLine),static_cast<int>(startChar)};
 }
 
-// Recognize integer and floating-point numbers.
-Token Lexer::scanNumber() {
-
-    int startLine = line;
-    int startColumn = column;
-
+Token Lexer::scanNumber()
+{
+    size_t startLine = line;
+    size_t startChar = character;
     std::string lexeme;
 
-    while (!isAtEnd() &&
-           std::isdigit(static_cast<unsigned char>(currentChar()))) {
-        lexeme += advance();
-    }
+    while (!isAtEnd && std::isdigit(static_cast<unsigned char>(currentChar())))
+        lexeme+=next();
 
-    TokenType type = TokenType::IntegerLiteral;
-
-    if (currentChar() == '.' &&
-        std::isdigit(static_cast<unsigned char>(peek()))) {
-
+    TokenType type= TokenType::IntegerLiteral;
+    if(currentChar()=='.' && std::isdigit(static_cast<unsigned char>(peek())))
+    {
         type = TokenType::FloatLiteral;
-
-        lexeme += advance();
-
-        while (!isAtEnd() &&
-               std::isdigit(static_cast<unsigned char>(currentChar()))) {
-            lexeme += advance();
-        }
+        lexeme+=next();
+        while (!isAtEnd && std::isdigit(static_cast<unsigned char>(currentChar())))
+            lexeme+=next();
     }
-
-    return makeToken(type, lexeme, startLine, startColumn);
+    return {type,lexeme,static_cast<int>(startLine),static_cast<int>(startChar)};
 }
 
-// Recognize character literals such as 'A'.
-Token Lexer::scanCharacter() {
-
-    int startLine = line;
-    int startColumn = column;
-
+Token Lexer::scanCharacter()
+{
+    size_t startLine = line;
+    size_t startChar = character;
     std::string lexeme;
 
-    lexeme += advance(); // Opening quote
-
-    if (isAtEnd() || currentChar() == '\n' ||
-        currentChar() == '\'') {
-
-        return makeToken(
-            TokenType::Invalid, lexeme, startLine, startColumn
-        );
+    lexeme+=next();
+    if(isAtEnd() || currentChar()=='\'' || currentChar()=='\n')
+        return {TokenType::Invalid,lexeme,static_cast<int>(startLine),static_cast<int>(startChar)};
+    if (currentChar() == '\\')
+    {
+        lexeme+=next(); 
+        if (isAtEnd())
+            return {TokenType::Invalid,lexeme,static_cast<int>(startLine),static_cast<int>(startChar)};
+        lexeme+=next();
     }
+    else
+        lexeme+=next();
 
-    if (currentChar() == '\\') {
-        lexeme += advance();
+    if (currentChar()!='\'')
+        return {TokenType::Invalid,lexeme,static_cast<int>(startLine),static_cast<int>(startChar)};
+    lexeme+=next();
 
-        if (isAtEnd()) {
-            return makeToken(
-                TokenType::Invalid, lexeme, startLine, startColumn
-            );
-        }
-
-        lexeme += advance();
-    } else {
-        lexeme += advance();
-    }
-
-    if (currentChar() != '\'') {
-        return makeToken(
-            TokenType::Invalid, lexeme, startLine, startColumn
-        );
-    }
-
-    lexeme += advance(); // Closing quote
-
-    return makeToken(
-        TokenType::CharacterLiteral,
-        lexeme,
-        startLine,
-        startColumn
-    );
+    return {TokenType::CharacterLiteral,lexeme,static_cast<int>(startLine),static_cast<int>(startChar)};
 }
 
-// Recognize operators and delimiters.
-Token Lexer::scanOperatorOrDelimiter() {
+Token Lexer::scanOperatorOrDelimiter()
+{
+    size_t startLine = line;
+    size_t startChar = character;
+    char c = next();
 
-    int startLine = line;
-    int startColumn = column;
-
-    char c = advance();
-
-    auto make = [&](TokenType type) {
-        return makeToken(
-            type,
-            std::string(1, c),
-            startLine,
-            startColumn
-        );
-    };
-
-    auto match = [&](char expected, TokenType type) {
-        if (currentChar() == expected) {
-            c = c; // First character already consumed
-            advance();
-
-            return makeToken(
-                type,
-                std::string() + c + expected,
-                startLine,
-                startColumn
-            );
+    auto match = [&](char e,TokenType single,TokenType duo)
+    {
+        if(currentChar()==e)
+        {
+            next();
+            return Token{duo,std::string{c,e},static_cast<int>(startLine),static_cast<int>(startChar)};
         }
-
-        return makeToken(
-            TokenType::Invalid,
-            std::string(1, c),
-            startLine,
-            startColumn
-        );
+        return Token{single,std::string{1,c},static_cast<int>(startLine),static_cast<int>(startChar)};
     };
 
-    switch (c) {
+    switch (c)
+    {
+    case '+': match('+',TokenType::Plus,TokenType::PlusPlus);
+    case '-': match('-',TokenType::Minus,TokenType::MinusMinus);
+    case '*': return Token{TokenType::Star,std::string{1,c},static_cast<int>(startLine),static_cast<int>(startChar)};
+    case '/': return Token{TokenType::Slash,std::string{1,c},static_cast<int>(startLine),static_cast<int>(startChar)};
+    case '%': return Token{TokenType::Percent,std::string{1,c},static_cast<int>(startLine),static_cast<int>(startChar)}; 
+    
+    case '=': match('=',TokenType::Assign,TokenType::Equal);
+    case '<': match('=',TokenType::Less,TokenType::LessEqual);
+    case '>': match('+',TokenType::Greater,TokenType::GreaterEqual);
+    case '!': match('+',TokenType::Bang,TokenType::NotEqual);
 
-        case '+':
-            if (currentChar() == '+') {
-                advance();
-                return makeToken(TokenType::PlusPlus, "++",
-                                 startLine, startColumn);
-            }
-            return make(TokenType::Plus);
+    case '&': match('+',TokenType::BitAnd,TokenType::AndAnd);
+    case '|': match('+',TokenType::BitOr,TokenType::OrOr);
+    
+    case '(': return Token{TokenType::LeftParen,std::string{1,c},static_cast<int>(startLine),static_cast<int>(startChar)}; 
+    case ')': return Token{TokenType::RightParen,std::string{1,c},static_cast<int>(startLine),static_cast<int>(startChar)}; 
+    case '{': return Token{TokenType::LeftBrace,std::string{1,c},static_cast<int>(startLine),static_cast<int>(startChar)}; 
+    case '}': return Token{TokenType::RightBrace,std::string{1,c},static_cast<int>(startLine),static_cast<int>(startChar)}; 
+    case '[': return Token{TokenType::LeftBrack,std::string{1,c},static_cast<int>(startLine),static_cast<int>(startChar)}; 
+    case ']': return Token{TokenType::RightBrack,std::string{1,c},static_cast<int>(startLine),static_cast<int>(startChar)}; 
 
-        case '-':
-            if (currentChar() == '-') {
-                advance();
-                return makeToken(TokenType::MinusMinus, "--",
-                                 startLine, startColumn);
-            }
-            return make(TokenType::Minus);
-
-        case '*': return make(TokenType::Star);
-        case '/': return make(TokenType::Slash);
-        case '%': return make(TokenType::Percent);
-
-        case '=':
-            if (currentChar() == '=') {
-                advance();
-                return makeToken(TokenType::Equal, "==",
-                                 startLine, startColumn);
-            }
-            return make(TokenType::Assign);
-
-        case '!':
-            if (currentChar() == '=') {
-                advance();
-                return makeToken(TokenType::NotEqual, "!=",
-                                 startLine, startColumn);
-            }
-            return make(TokenType::Bang);
-
-        case '<':
-            if (currentChar() == '=') {
-                advance();
-                return makeToken(TokenType::LessEqual, "<=",
-                                 startLine, startColumn);
-            }
-            return make(TokenType::Less);
-
-        case '>':
-            if (currentChar() == '=') {
-                advance();
-                return makeToken(TokenType::GreaterEqual, ">=",
-                                 startLine, startColumn);
-            }
-            return make(TokenType::Greater);
-
-        case '&':
-            if (currentChar() == '&') {
-                advance();
-                return makeToken(TokenType::AndAnd, "&&",
-                                 startLine, startColumn);
-            }
-            return make(TokenType::Invalid);
-
-        case '|':
-            if (currentChar() == '|') {
-                advance();
-                return makeToken(TokenType::OrOr, "||",
-                                 startLine, startColumn);
-            }
-            return make(TokenType::Invalid);
-
-        case '(': return make(TokenType::LeftParen);
-        case ')': return make(TokenType::RightParen);
-        case '{': return make(TokenType::LeftBrace);
-        case '}': return make(TokenType::RightBrace);
-        case ',': return make(TokenType::Comma);
-        case ';': return make(TokenType::Semicolon);
-
-        default:
-            return make(TokenType::Invalid);
+    case ',': return Token{TokenType::Comma,std::string{1,c},static_cast<int>(startLine),static_cast<int>(startChar)}; 
+    case ';': return Token{TokenType::Semicolon,std::string{1,c},static_cast<int>(startLine),static_cast<int>(startChar)}; 
+    
+    default:
+        return {TokenType::Invalid,std::string(1,c),static_cast<int>(startLine),static_cast<int>(startChar)};
     }
+
 }
 
-// Produce the complete token stream.
-std::vector<Token> Lexer::tokenize() {
+explicit Lexer::Lexer(const std::string& sourceCode) : source(sourceCode) {}
 
+std::vector<Token> Lexer::tokenize()
+{
     std::vector<Token> tokens;
-
-    while (!isAtEnd()) {
-
+    while (!isAtEnd)
+    {
         skipWhitespaceAndComments();
-
-        if (isAtEnd()) {
+        if(isAtEnd())
             break;
-        }
-
         char c = currentChar();
-
-        if (isIdentifierStart(c)) {
-            tokens.push_back(scanIdentifier());
-        }
-        else if (std::isdigit(static_cast<unsigned char>(c))) {
+        if(std::isalpha(static_cast<unsigned char>(c) || c=='_'))
+            tokens.push_back(scanKeywordIdentifier());
+        else if(std::isdigit(static_cast<unsigned char>(c)))
             tokens.push_back(scanNumber());
-        }
-        else if (c == '\'') {
+        else if(c == '\'')
             tokens.push_back(scanCharacter());
-        }
-        else {
+        else
             tokens.push_back(scanOperatorOrDelimiter());
-        }
-    }
 
-    tokens.push_back(
-        makeToken(TokenType::EndOfFile, "", line, column)
-    );
+    }
+    tokens.push_back({TokenType::EndOfFile,"",line,character});
 
     return tokens;
+    
 }
