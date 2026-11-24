@@ -42,6 +42,8 @@ inline const char* tokenTypeToString(TokenType type) {
 
         case TokenType::AndAnd: return "AndAnd";
         case TokenType::OrOr: return "OrOr";
+        case TokenType::BitAnd: return "BitAnd";
+        case TokenType::BitOr: return "BitOr";
         case TokenType::Bang: return "Bang";
 
         case TokenType::PlusPlus: return "PlusPlus";
@@ -51,6 +53,8 @@ inline const char* tokenTypeToString(TokenType type) {
         case TokenType::RightParen: return "RightParen";
         case TokenType::LeftBrace: return "LeftBrace";
         case TokenType::RightBrace: return "RightBrace";
+        case TokenType::LeftBrack: return "LeftBrack";
+        case TokenType::RightBrack: return "RightBrack";
         case TokenType::Comma: return "Comma";
         case TokenType::Semicolon: return "Semicolon";
 

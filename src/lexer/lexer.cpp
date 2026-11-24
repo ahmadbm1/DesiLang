@@ -1,11 +1,10 @@
 #include "lexer.h"
 
 #include <cctype>
-#include <unordered_map>
 #include <utility>
 
 
-bool Lexer::isAtEnd(size_t offset=0) const
+bool Lexer::isAtEnd(size_t offset) const
 {
     return position+offset >=source.size();
 }
@@ -18,7 +17,7 @@ char Lexer::currentChar()
     return source[position];
 }
 
-char Lexer::peek(size_t offset=1) const
+char Lexer::peek(size_t offset) const
 {
     if (isAtEnd(offset))
         return '\0';
@@ -45,7 +44,7 @@ void Lexer::skipWhitespaceAndComments()
 {
     while (!isAtEnd())
     {
-        if(currentChar() ==' ')
+        if(std::isspace(static_cast<unsigned char>(currentChar())))
         {
             next();
             continue;
@@ -67,7 +66,7 @@ Token Lexer::scanKeywordIdentifier()
     size_t startChar = character;
     std::string lexeme;
 
-    while (!isAtEnd && (std::isalnum(static_cast<unsigned char>(currentChar())) || currentChar() == '_'))
+    while (!isAtEnd() && (std::isalnum(static_cast<unsigned char>(currentChar())) || currentChar() == '_'))
         lexeme+=next();
 
     auto type= keywords.find(lexeme);
@@ -83,7 +82,7 @@ Token Lexer::scanNumber()
     size_t startChar = character;
     std::string lexeme;
 
-    while (!isAtEnd && std::isdigit(static_cast<unsigned char>(currentChar())))
+    while (!isAtEnd() && std::isdigit(static_cast<unsigned char>(currentChar())))
         lexeme+=next();
 
     TokenType type= TokenType::IntegerLiteral;
@@ -91,7 +90,7 @@ Token Lexer::scanNumber()
     {
         type = TokenType::FloatLiteral;
         lexeme+=next();
-        while (!isAtEnd && std::isdigit(static_cast<unsigned char>(currentChar())))
+        while (!isAtEnd() && std::isdigit(static_cast<unsigned char>(currentChar())))
             lexeme+=next();
     }
     return {type,lexeme,static_cast<int>(startLine),static_cast<int>(startChar)};
@@ -141,19 +140,19 @@ Token Lexer::scanOperatorOrDelimiter()
 
     switch (c)
     {
-    case '+': match('+',TokenType::Plus,TokenType::PlusPlus);
-    case '-': match('-',TokenType::Minus,TokenType::MinusMinus);
+    case '+': return match('+',TokenType::Plus,TokenType::PlusPlus);
+    case '-': return match('-',TokenType::Minus,TokenType::MinusMinus);
     case '*': return Token{TokenType::Star,std::string{1,c},static_cast<int>(startLine),static_cast<int>(startChar)};
     case '/': return Token{TokenType::Slash,std::string{1,c},static_cast<int>(startLine),static_cast<int>(startChar)};
     case '%': return Token{TokenType::Percent,std::string{1,c},static_cast<int>(startLine),static_cast<int>(startChar)}; 
     
-    case '=': match('=',TokenType::Assign,TokenType::Equal);
-    case '<': match('=',TokenType::Less,TokenType::LessEqual);
-    case '>': match('+',TokenType::Greater,TokenType::GreaterEqual);
-    case '!': match('+',TokenType::Bang,TokenType::NotEqual);
+    case '=': return match('=',TokenType::Assign,TokenType::Equal);
+    case '<': return match('=',TokenType::Less,TokenType::LessEqual);
+    case '>': return match('=',TokenType::Greater,TokenType::GreaterEqual);
+    case '!': return match('=',TokenType::Bang,TokenType::NotEqual);
 
-    case '&': match('+',TokenType::BitAnd,TokenType::AndAnd);
-    case '|': match('+',TokenType::BitOr,TokenType::OrOr);
+    case '&': return match('&',TokenType::BitAnd,TokenType::AndAnd);
+    case '|': return match('|',TokenType::BitOr,TokenType::OrOr);
     
     case '(': return Token{TokenType::LeftParen,std::string{1,c},static_cast<int>(startLine),static_cast<int>(startChar)}; 
     case ')': return Token{TokenType::RightParen,std::string{1,c},static_cast<int>(startLine),static_cast<int>(startChar)}; 
@@ -171,18 +170,18 @@ Token Lexer::scanOperatorOrDelimiter()
 
 }
 
-explicit Lexer::Lexer(const std::string& sourceCode) : source(sourceCode) {}
+Lexer::Lexer(const std::string& sourceCode) : source(sourceCode) {}
 
 std::vector<Token> Lexer::tokenize()
 {
     std::vector<Token> tokens;
-    while (!isAtEnd)
+    while (!isAtEnd())
     {
         skipWhitespaceAndComments();
         if(isAtEnd())
             break;
         char c = currentChar();
-        if(std::isalpha(static_cast<unsigned char>(c) || c=='_'))
+        if(std::isalpha(static_cast<unsigned char>(c)) || c=='_')
             tokens.push_back(scanKeywordIdentifier());
         else if(std::isdigit(static_cast<unsigned char>(c)))
             tokens.push_back(scanNumber());

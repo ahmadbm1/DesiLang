@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include <memory>
@@ -7,161 +6,120 @@
 
 #include "Token.h"
 
-// =====================================
-// BASE AST CLASSES
-// =====================================
-
-struct ASTNode {
-    virtual ~ASTNode() = default;
+struct ASTNode
+{
+    virtual ~ASTNode() =default;
+};
+struct Expression : ASTNode
+{
+    virtual ~Expression() = default;
+};
+struct Statement : ASTNode
+{
+    virtual ~Statement() = default;
 };
 
-struct Expr : ASTNode {
-    virtual ~Expr() = default;
-};
+using ExpPtr = std::unique_ptr<Expression>;
+using StmPtr = std::unique_ptr<Statement>;
 
-struct Stmt : ASTNode {
-    virtual ~Stmt() = default;
-};
-
-// Smart pointer aliases
-using ExprPtr = std::unique_ptr<Expr>;
-using StmtPtr = std::unique_ptr<Stmt>;
-
-
-// =====================================
-// EXPRESSION NODES
-// =====================================
-
-// Literal: 20, 12.5, 'A', sach, jhoot
-struct LiteralExpr : Expr {
+/*
+literal = .5 , 1 , 'a' , sach, jhoot 
+varaible = name
+unary   = ++ , !a , -a 
+binary  = a+10,a==10,a>10,a>=10
+assignemnt a=10
+call    a(10,10),a(10,a(10))
+*/
+struct literalExpr : Expression
+{
     Token value;
-
-    explicit LiteralExpr(Token value)
-        : value(std::move(value)) {}
+    explicit literalExpr(Token _value) : value(std::move(_value)) {}
 };
 
-// Variable: age
-struct VariableExpr : Expr {
+struct varExpr : Expression
+{
     Token name;
-
-    explicit VariableExpr(Token name)
-        : name(std::move(name)) {}
+    explicit varExpr(Token _name) : name(std::move(_name)) {}
 };
 
-// Unary: -age, !condition, ++age
-struct UnaryExpr : Expr {
+struct unaryExpr : Expression
+{
     Token op;
-    ExprPtr right;
-
-    UnaryExpr(Token op, ExprPtr right)
-        : op(std::move(op)),
-          right(std::move(right)) {}
+    ExpPtr operandRight;
+    explicit unaryExpr(Token _op,ExpPtr _operandRight) : op(std::move(_op)) , operandRight(std::move(_operandRight)) {}
 };
 
-// Binary: age + 10, age >= 18
-struct BinaryExpr : Expr {
-    ExprPtr left;
+struct binExpr : Expression
+{
+    ExpPtr operandLeft;
     Token op;
-    ExprPtr right;
-
-    BinaryExpr(ExprPtr left, Token op, ExprPtr right)
-        : left(std::move(left)),
-          op(std::move(op)),
-          right(std::move(right)) {}
+    ExpPtr operandRight;
+    explicit binExpr(ExpPtr _operandLeft,Token _op,ExpPtr _operandRight) : operandLeft(std::move(_operandLeft)) , op(std::move(_op)) , operandRight(std::move(_operandRight)) {}
 };
 
-// Assignment: age = 20
-struct AssignmentExpr : Expr {
+struct assignExpr : Expression
+{
     Token name;
-    ExprPtr value;
-
-    AssignmentExpr(Token name, ExprPtr value)
-        : name(std::move(name)),
-          value(std::move(value)) {}
+    ExpPtr val;
+    explicit assignExpr(Token _name,ExpPtr _val) : name(std::move(_name)) , val(std::move(_val)) {}
 };
 
-// Function call: calculate(10, 20)
-struct CallExpr : Expr {
-    Token callee;
-    std::vector<ExprPtr> arguments;
-
-    CallExpr(Token callee, std::vector<ExprPtr> arguments)
-        : callee(std::move(callee)),
-          arguments(std::move(arguments)) {}
+struct callExpr : Expression
+{
+    Token calle;
+    std::vector<ExpPtr> arg;
+    explicit callExpr(Token _calle,std::vector<ExpPtr> _arg) : calle(std::move(_calle)) , arg(std::move(_arg)) {}
 };
 
+/*
+vardec  = adad a, 
+expression  = wrap expression into statement : assignment,call
+braces {}
+if = if else
+for = inititalize, condition, increment , body
+while = condition,body
+ret = val
+*/
 
-// =====================================
-// STATEMENT NODES
-// =====================================
-
-// Variable declaration: adad age = 20;
-struct VarDeclStmt : Stmt {
+struct vardecStm : Statement{
     TokenType dataType;
     Token name;
-    ExprPtr initializer;
-
-    VarDeclStmt(
-        TokenType dataType,
-        Token name,
-        ExprPtr initializer
-    )
-        : dataType(dataType),
-          name(std::move(name)),
-          initializer(std::move(initializer)) {}
+    ExpPtr intz;
+    vardecStm( TokenType _dataType, Token _name, ExpPtr _intz) : dataType(_dataType) , name(std::move(_name)), intz(std::move(_intz)) {}
 };
 
-// Expression statement: age = 20;
-struct ExprStmt : Stmt {
-    ExprPtr expression;
-
-    explicit ExprStmt(ExprPtr expression)
-        : expression(std::move(expression)) {}
+ struct expStm: Statement {
+    ExpPtr expr;
+    explicit expStm(ExpPtr _expr) : expr(std::move(_expr)) {}
 };
 
-// Block: { statements }
-struct BlockStmt : Stmt {
-    std::vector<StmtPtr> statements;
+struct bracesStm : Statement {
+    std::vector<StmPtr> stm;
+    explicit bracesStm(std::vector<StmPtr> _stm) : stm(std::move(_stm)) {}
 };
 
-// If / Else statement
-struct IfStmt : Stmt {
-    ExprPtr condition;
-    StmtPtr thenBranch;
-    StmtPtr elseBranch;
-
-    IfStmt(
-        ExprPtr condition,
-        StmtPtr thenBranch,
-        StmtPtr elseBranch
-    )
-        : condition(std::move(condition)),
-          thenBranch(std::move(thenBranch)),
-          elseBranch(std::move(elseBranch)) {}
+struct ifStm : Statement {
+    ExpPtr condition;
+    StmPtr thenWhat;
+    StmPtr elseCondition;
+    ifStm( ExpPtr _condition, StmPtr _thenWhat, StmPtr _elseCondition) : condition(std::move(_condition)) , thenWhat(std::move(_thenWhat)), elseCondition(std::move(_elseCondition)) {}
 };
 
-// While loop
-struct WhileStmt : Stmt {
-    ExprPtr condition;
-    StmtPtr body;
-
-    WhileStmt(ExprPtr condition, StmtPtr body)
-        : condition(std::move(condition)),
-          body(std::move(body)) {}
+struct forStm : Statement {
+    StmPtr initializer;
+    ExpPtr condition;
+    ExpPtr step;
+    StmPtr body;
+    forStm(StmPtr _initializer,ExpPtr _condition,ExpPtr _step, StmPtr _body) :initializer(std::move(_initializer)) , condition(std::move(_condition)) ,step(std::move(_step)) , body(std::move(_body)) {}
 };
 
-// Return statement
-struct ReturnStmt : Stmt {
-    ExprPtr value;
-
-    explicit ReturnStmt(ExprPtr value)
-        : value(std::move(value)) {}
+struct whileStm : Statement {
+    ExpPtr condition;
+    StmPtr body;
+    whileStm(ExpPtr _condition, StmPtr _body) :condition(std::move(_condition)) , body(std::move(_body)) {}
 };
 
-// For loop
-struct ForStmt : Stmt {
-    StmtPtr initializer;
-    ExprPtr condition;
-    ExprPtr increment;
-    StmtPtr body;
+struct retStm : Statement {
+    ExpPtr val;
+    retStm( ExpPtr _val) : val(std::move(_val)) {}
 };
